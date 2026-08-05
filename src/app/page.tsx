@@ -208,53 +208,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. Testimonials Section */}
-      <section className="py-24 bg-brand-dark-card border-t border-b border-white/5 relative">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-xl mx-auto mb-16 space-y-3">
-            <span className="text-xs font-bold text-brand-yellow tracking-widest uppercase block">
-              SOCIAL PROOF
-            </span>
-            <h2 className="font-cormorant text-4xl font-bold text-white">
-              {t.testimonialTitle}
-            </h2>
-            <p className="text-brand-cream/60 text-sm font-light">
-              {t.testimonialSubtitle}
-            </p>
-          </div>
 
-          {/* Testimonial Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {t.testimonials.map((test, index) => (
-              <div key={index} className="glass-card p-8 rounded-2xl border border-white/5 flex flex-col justify-between h-full hover:-translate-y-2 transition-transform duration-300">
-                {/* Quote Icon */}
-                <svg className="w-8 h-8 text-brand-yellow/20 mb-4" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
-                  <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.56 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.912 4z" />
-                </svg>
-                
-                <p className="text-brand-cream/80 text-sm font-light leading-relaxed italic flex-1 mb-6">
-                  "{test.comment}"
-                </p>
-
-                <div className="border-t border-white/5 pt-4 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-cormorant text-base font-bold text-white leading-tight">{test.name}</h4>
-                    <span className="text-[10px] text-brand-cream/50 uppercase tracking-wider block mt-0.5">{test.role}</span>
-                  </div>
-                  {/* Star icons */}
-                  <div className="flex gap-0.5 text-brand-yellow">
-                    {[...Array(5)].map((_, i) => (
-                      <svg key={i} className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <Footer />
     </div>
