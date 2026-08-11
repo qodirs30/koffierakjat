@@ -7,19 +7,61 @@ import { useProducts } from '@/context/ProductContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Product } from '@/data/products';
 import Image from 'next/image';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { storage, auth } from '@/lib/firebase';
 
 export default function AdminPage() {
   const { products, addProduct, updateProduct, deleteProduct, resetCatalog } = useProducts();
   const { language, t } = useLanguage();
   
+  // Auth state
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
   // Modal / Form state
   const [isOpen, setIsOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
-    setMounted(true);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+      setMounted(true);
+    });
+    return () => unsubscribe();
   }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoggingIn(true);
+    try {
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+    } catch (err: any) {
+      console.error("Gagal login:", err);
+      setLoginError(
+        language === 'id' 
+          ? 'Email atau password salah. Pastikan Anda sudah membuat akun di Firebase Console.' 
+          : 'Invalid email or password. Make sure the user is created in Firebase Console.'
+      );
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("Gagal logout:", err);
+    }
+  };
   
   // Form fields
   const [name, setName] = useState('');
@@ -35,6 +77,7 @@ export default function AdminPage() {
   const [isLimited, setIsLimited] = useState(false);
   const [isPreOrder, setIsPreOrder] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const formatPrice = (num: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
@@ -121,6 +164,8 @@ export default function AdminPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsUploading(true);
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new window.Image();
@@ -148,9 +193,23 @@ export default function AdminPage() {
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
 
-        // Compress image as jpeg (0.75 quality) to keep localStorage small
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
-        setImageUrl(compressedBase64);
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            setIsUploading(false);
+            return;
+          }
+          try {
+            const storageRef = ref(storage, `products/${Date.now()}_${file.name.replace(/\.[^/.]+$/, "")}.jpg`);
+            const snapshot = await uploadBytes(storageRef, blob);
+            const downloadUrl = await getDownloadURL(snapshot.ref);
+            setImageUrl(downloadUrl);
+          } catch (error) {
+            console.error("Gagal mengunggah gambar ke Firebase:", error);
+            alert("Gagal mengunggah gambar ke Firebase Storage. Harap pastikan aturan Security Rules Storage telah diset ke public write.");
+          } finally {
+            setIsUploading(false);
+          }
+        }, 'image/jpeg', 0.75);
       };
       img.src = event.target?.result as string;
     };
@@ -163,11 +222,90 @@ export default function AdminPage() {
     }
   };
 
-  if (!mounted) {
+  if (authLoading || !mounted) {
     return (
       <div className="min-h-screen bg-brand-dark flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-yellow"></div>
       </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 bg-brand-dark pt-32 pb-12 flex items-center justify-center min-h-[85vh]">
+          <div className="w-full max-w-md mx-auto px-4 animate-fade-in">
+            <div className="glass-card p-8 rounded-2xl border border-white/5 space-y-6 shadow-xl relative overflow-hidden">
+              <div className="absolute inset-0 bg-radial from-brand-yellow/5 to-transparent pointer-events-none" />
+              
+              <div className="text-center space-y-2">
+                <span className="text-[10px] font-bold text-brand-yellow tracking-widest uppercase block">
+                  CMS AUTHENTICATION
+                </span>
+                <h2 className="font-outfit text-2xl font-extrabold text-white">
+                  {language === 'id' ? 'Masuk Panel Admin' : 'Admin Panel Login'}
+                </h2>
+                <p className="text-xs text-brand-cream/50 font-light">
+                  {language === 'id' ? 'Masukkan kredensial admin Anda untuk melanjutkan.' : 'Enter your admin credentials to proceed.'}
+                </p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-brand-cream/60 uppercase tracking-wider block">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="admin@koffierakjat.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-2.5 text-xs text-brand-cream placeholder-brand-cream/20 focus:border-brand-yellow focus:outline-none transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-brand-cream/60 uppercase tracking-wider block">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-2.5 text-xs text-brand-cream placeholder-brand-cream/20 focus:border-brand-yellow focus:outline-none transition-colors"
+                  />
+                </div>
+
+                {loginError && (
+                  <div className="p-3 bg-brand-red/10 border border-brand-red/20 text-brand-red text-xs rounded-xl font-light leading-relaxed">
+                    {loginError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full py-3 bg-brand-yellow text-brand-dark hover:bg-brand-yellow-hover text-xs font-bold rounded-xl shadow-lg shadow-brand-yellow/10 transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {isLoggingIn ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-t-2 border-brand-dark"></div>
+                      <span>{language === 'id' ? 'Memproses...' : 'Processing...'}</span>
+                    </>
+                  ) : (
+                    <span>{language === 'id' ? 'Masuk Sekarang' : 'Login Now'}</span>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
     );
   }
 
@@ -198,6 +336,15 @@ export default function AdminPage() {
             </div>
             
             <div className="flex items-center gap-3 self-start md:self-auto">
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2.5 bg-brand-red/10 border border-brand-red/20 hover:border-brand-red text-brand-red text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.0" stroke="currentColor" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                </svg>
+                <span>Logout</span>
+              </button>
               <button
                 onClick={resetCatalog}
                 className="px-4 py-2.5 bg-white/5 border border-white/10 hover:border-white/20 text-brand-cream text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer"
@@ -623,7 +770,14 @@ export default function AdminPage() {
                       {language === 'id' ? 'Foto Produk (Upload)' : 'Product Image (Upload)'}
                     </label>
                     
-                    {!imageUrl ? (
+                    {isUploading ? (
+                      <div className="flex flex-col items-center justify-center border-2 border-dashed border-brand-yellow/30 rounded-xl p-4 bg-brand-dark min-h-24">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-yellow mb-2"></div>
+                        <span className="text-xs text-brand-yellow font-medium">
+                          {language === 'id' ? 'Mengunggah ke Cloud...' : 'Uploading to Cloud...'}
+                        </span>
+                      </div>
+                    ) : !imageUrl ? (
                       <div className="flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-xl p-4 bg-brand-dark hover:border-brand-yellow/30 transition-all group relative min-h-24">
                         <input
                           type="file"
@@ -672,6 +826,20 @@ export default function AdminPage() {
                         </div>
                       </div>
                     )}
+                    
+                    {/* Alternative Image URL input (Billing fallback) */}
+                    <div className="mt-3">
+                      <label className="text-[8px] font-bold text-brand-cream/40 uppercase tracking-widest block mb-1">
+                        {language === 'id' ? 'ATAU MASUKKAN URL GAMBAR EKSTERNAL' : 'OR ENTER EXTERNAL IMAGE URL'}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="https://example.com/kopi.jpg"
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        className="w-full bg-brand-dark/50 border border-white/5 rounded-xl px-3.5 py-2 text-[11px] text-brand-cream placeholder-brand-cream/25 focus:border-brand-yellow focus:outline-none transition-colors"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-6 pt-1">
@@ -708,9 +876,17 @@ export default function AdminPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-brand-yellow text-brand-dark hover:bg-brand-yellow-hover text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                    disabled={isUploading}
+                    className={`px-5 py-2.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                      isUploading
+                        ? 'bg-brand-yellow/50 text-brand-dark/50 cursor-not-allowed'
+                        : 'bg-brand-yellow text-brand-dark hover:bg-brand-yellow-hover'
+                    }`}
                   >
-                    {editingProduct ? 'Save Changes' : 'Create Product'}
+                    {isUploading 
+                      ? (language === 'id' ? 'Mengunggah...' : 'Uploading...') 
+                      : (editingProduct ? 'Save Changes' : 'Create Product')
+                    }
                   </button>
                 </div>
 

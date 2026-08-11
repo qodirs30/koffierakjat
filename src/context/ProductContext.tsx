@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Product, products as initialProducts } from '../data/products';
 
 interface ProductContextProps {
@@ -17,91 +19,96 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [productsState, setProductsState] = useState<Product[]>([]);
   const [mounted, setMounted] = useState(false);
 
-  // Initialize and load products from localStorage
+  // Initialize and listen to products from Firestore in real-time
   useEffect(() => {
-    const savedProducts = localStorage.getItem('koffie-rakjat-products');
-    if (savedProducts) {
-      try {
-        const parsed = JSON.parse(savedProducts);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Repair legacy product schemas to prevent runtime exceptions
-          const repaired = parsed.map((p: any) => {
-            let descObj = p.description;
-            if (typeof descObj === 'string' || !descObj) {
-              descObj = { id: descObj || '', en: descObj || '' };
-            }
-            let priceObj = p.prices;
-            if (!priceObj || typeof priceObj !== 'object') {
-              priceObj = { 
-                '100g': p.price || 45000, 
-                '200g': (p.price || 45000) * 1.8, 
-                '1kg': (p.price || 45000) * 7.5 
-              };
-            }
-            return {
-              id: p.id || `coffee-${Date.now()}-${Math.random()}`,
-              name: p.name || 'Specialty Coffee',
-              category: (p.category === 'espresso' ? 'espresso' : 'filter') as 'filter' | 'espresso',
-              origin: p.origin || 'Nusantara',
-              roastLevel: (p.roastLevel === 'Light' || p.roastLevel === 'Dark' ? p.roastLevel : 'Medium') as 'Light' | 'Medium' | 'Dark',
-              tasteNotes: Array.isArray(p.tasteNotes) ? p.tasteNotes : [],
-              prices: priceObj,
-              isLimited: !!p.isLimited,
-              isPreOrder: !!p.isPreOrder,
-              imageUrl: p.imageUrl || '/images/coffee-pack-filter.jpg',
-              description: descObj
-            } as Product;
-          });
-          setProductsState(repaired);
-        } else {
+    const unsub = onSnapshot(
+      collection(db, 'products'),
+      (snapshot) => {
+        const items: Product[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          // Safety schema mapping to ensure no undefined property crashes
+          let descObj = data.description;
+          if (typeof descObj === 'string' || !descObj) {
+            descObj = { id: descObj || '', en: descObj || '' };
+          }
+          let priceObj = data.prices;
+          if (!priceObj || typeof priceObj !== 'object') {
+            priceObj = { 
+              '100g': data.price || 45000, 
+              '200g': (data.price || 45000) * 1.8, 
+              '1kg': (data.price || 45000) * 7.5 
+            };
+          }
+          items.push({
+            id: docSnap.id,
+            name: data.name || 'Specialty Coffee',
+            category: (data.category === 'espresso' ? 'espresso' : 'filter') as 'filter' | 'espresso',
+            origin: data.origin || 'Nusantara',
+            roastLevel: (data.roastLevel === 'Light' || data.roastLevel === 'Dark' ? data.roastLevel : 'Medium') as 'Light' | 'Medium' | 'Dark',
+            tasteNotes: Array.isArray(data.tasteNotes) ? data.tasteNotes : [],
+            prices: priceObj,
+            isLimited: !!data.isLimited,
+            isPreOrder: !!data.isPreOrder,
+            imageUrl: data.imageUrl || '/images/coffee-pack-filter.jpg',
+            description: descObj
+          } as Product);
+        });
+
+        // Seed with defaults if Firestore is completely empty
+        if (items.length === 0) {
           setProductsState(initialProducts);
+        } else {
+          setProductsState(items);
         }
-      } catch (e) {
-        console.error('Failed to parse local storage products', e);
+        setMounted(true);
+      },
+      (error) => {
+        console.error('Failed to load products from Firestore:', error);
+        // Fallback to local defaults on network/rules failure
         setProductsState(initialProducts);
+        setMounted(true);
       }
-    } else {
-      // Setup initial default products
-      localStorage.setItem('koffie-rakjat-products', JSON.stringify(initialProducts));
-      setProductsState(initialProducts);
-    }
-    setMounted(true);
+    );
+
+    return () => unsub();
   }, []);
 
-  // Save changes to localStorage
-  const saveProducts = (updatedList: Product[]) => {
-    setProductsState(updatedList);
-    localStorage.setItem('koffie-rakjat-products', JSON.stringify(updatedList));
+  const addProduct = async (newProduct: Omit<Product, 'id'>) => {
+    try {
+      await addDoc(collection(db, 'products'), newProduct);
+    } catch (e) {
+      console.error('Failed to add product to Firestore:', e);
+    }
   };
 
-  const addProduct = (newProduct: Omit<Product, 'id'>) => {
-    // Generate simple unique ID based on slugified name + timestamp
-    const slug = newProduct.name
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    const id = `${slug}-${Date.now()}`;
-    const productWithId: Product = { ...newProduct, id };
-    
-    saveProducts([...productsState, productWithId]);
+  const updateProduct = async (updatedProduct: Product) => {
+    try {
+      const { id, ...data } = updatedProduct;
+      await updateDoc(doc(db, 'products', id), data);
+    } catch (e) {
+      console.error('Failed to update product in Firestore:', e);
+    }
   };
 
-  const updateProduct = (updatedProduct: Product) => {
-    saveProducts(
-      productsState.map((product) =>
-        product.id === updatedProduct.id ? updatedProduct : product
-      )
-    );
+  const deleteProduct = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'products', id));
+    } catch (e) {
+      console.error('Failed to delete product from Firestore:', e);
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    saveProducts(productsState.filter((product) => product.id !== id));
-  };
-
-  const resetCatalog = () => {
-    saveProducts(initialProducts);
+  const resetCatalog = async () => {
+    try {
+      // Set default products in Firestore using setDoc to keep standard IDs
+      for (const p of initialProducts) {
+        const { id, ...data } = p;
+        await setDoc(doc(db, 'products', id), data);
+      }
+    } catch (e) {
+      console.error('Failed to reset catalog in Firestore:', e);
+    }
   };
 
   return (
