@@ -19,6 +19,7 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://koffierakjat.com"),
+  manifest: "/manifest.json",
   title: "KOFFIE RAKJAT | Kualitas Kopi Specialty Tanpa Gengsi",
   description: "Beli biji kopi roasted beans specialty berkualitas langsung dari Koffie Rakjat Semarang. Menyajikan cita rasa kopi Nusantara dengan jujur, merakyat, dan autentik.",
   keywords: ["koffie rakjat", "kopi semarang", "specialty coffee semarang", "roasted beans indonesia", "kopi filter", "kopi espresso", "katalog kopi"],

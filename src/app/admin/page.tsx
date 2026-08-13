@@ -240,6 +240,17 @@ export default function AdminPage() {
               <div className="absolute inset-0 bg-radial from-brand-yellow/5 to-transparent pointer-events-none" />
               
               <div className="text-center space-y-2">
+                <div className="flex justify-center mb-3">
+                  <div className="relative w-14 h-14 animate-pulse-subtle">
+                    <Image
+                      src="/logo.png"
+                      alt="Koffie Rakjat Logo"
+                      fill
+                      className="object-contain"
+                      priority
+                    />
+                  </div>
+                </div>
                 <span className="text-[10px] font-bold text-brand-yellow tracking-widest uppercase block">
                   CMS AUTHENTICATION
                 </span>
