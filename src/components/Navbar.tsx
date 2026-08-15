@@ -43,7 +43,7 @@ export const Navbar: React.FC = () => {
                   className="rounded-full border border-brand-yellow/30 bg-brand-dark transition-all duration-300 group-hover:scale-105 group-hover:border-brand-yellow"
                   priority
                 />
-                <span className="font-outfit text-xl font-bold tracking-wider text-brand-cream transition-colors duration-200 group-hover:text-brand-yellow">
+                <span className="font-outfit text-base sm:text-xl font-bold tracking-wider text-brand-cream transition-colors duration-200 group-hover:text-brand-yellow hidden min-[360px]:inline">
                   KOFFIE RAKJAT
                 </span>
               </Link>
@@ -67,12 +67,12 @@ export const Navbar: React.FC = () => {
             </div>
 
             {/* Action buttons (Language, Cart, Admin, Mobile menu) */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               {/* Language Switcher */}
-              <div className="flex items-center bg-brand-dark-card border border-white/5 rounded-full px-1 py-0.5 text-xs font-semibold">
+              <div className="flex items-center bg-brand-dark-card border border-white/5 rounded-full px-0.5 py-0.5 text-[10px] sm:text-xs font-semibold">
                 <button
                   onClick={() => setLanguage('id')}
-                  className={`px-2.5 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                  className={`px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
                     language === 'id'
                       ? 'bg-brand-yellow text-brand-dark font-bold'
                       : 'text-brand-cream/60 hover:text-brand-cream'
@@ -83,7 +83,7 @@ export const Navbar: React.FC = () => {
                 <span className="text-white/10 px-0.5">|</span>
                 <button
                   onClick={() => setLanguage('en')}
-                  className={`px-2.5 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                  className={`px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
                     language === 'en'
                       ? 'bg-brand-yellow text-brand-dark font-bold'
                       : 'text-brand-cream/60 hover:text-brand-cream'
@@ -96,7 +96,7 @@ export const Navbar: React.FC = () => {
               {/* Cart Trigger */}
               <button
                 onClick={() => setIsOpen(true)}
-                className="p-2.5 bg-brand-dark-card border border-white/5 hover:border-brand-yellow/30 rounded-full transition-all duration-200 group flex items-center justify-center cursor-pointer"
+                className="relative p-2 sm:p-2.5 bg-brand-dark-card border border-white/5 hover:border-brand-yellow/30 rounded-full transition-all duration-200 group flex items-center justify-center cursor-pointer"
                 aria-label="Open Cart"
               >
                 <svg
@@ -115,18 +115,16 @@ export const Navbar: React.FC = () => {
                 </svg>
 
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-between bg-brand-red text-[10px] font-bold text-white rounded-full ring-2 ring-brand-dark">
+                  <span className="absolute -top-1 -right-1 flex h-4 sm:h-5 w-4 sm:w-5 items-center justify-between bg-brand-red text-[8px] sm:text-[10px] font-bold text-white rounded-full ring-2 ring-brand-dark">
                     <span className="w-full text-center">{cartCount}</span>
                   </span>
                 )}
               </button>
 
-
-
               {/* Mobile Menu Trigger */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2.5 text-brand-cream/80 hover:text-brand-cream cursor-pointer"
+                className="md:hidden p-2 sm:p-2.5 text-brand-cream/80 hover:text-brand-cream cursor-pointer"
                 aria-label="Toggle Menu"
               >
                 {mobileMenuOpen ? (

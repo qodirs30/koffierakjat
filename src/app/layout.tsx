@@ -5,6 +5,7 @@ import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { ProductProvider } from "@/context/ProductContext";
+import { JournalProvider } from "@/context/JournalContext";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -71,9 +72,11 @@ export default function RootLayout({
 
         <LanguageProvider>
           <ProductProvider>
-            <CartProvider>
-              {children}
-            </CartProvider>
+            <JournalProvider>
+              <CartProvider>
+                {children}
+              </CartProvider>
+            </JournalProvider>
           </ProductProvider>
         </LanguageProvider>
       </body>

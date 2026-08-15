@@ -4,7 +4,7 @@ import React, { use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
-import { blogPosts } from '@/data/blog';
+import { useJournal } from '@/context/JournalContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
@@ -112,14 +112,27 @@ export default function BlogPostDetail({ params }: PageProps) {
   const { t, language } = useLanguage();
   const resolvedParams = use(params);
   const { slug } = resolvedParams;
+  const { articles, loading } = useJournal();
 
-  const post = blogPosts.find((p) => p.slug === slug);
+  const post = articles.find((p) => p.slug === slug);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-brand-dark justify-between">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-yellow"></div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!post) {
     return (
-      <div className="flex flex-col min-h-screen bg-brand-dark">
+      <div className="flex flex-col min-h-screen bg-brand-dark justify-between">
         <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-between text-center py-32">
+        <div className="flex-1 flex flex-col items-center justify-center text-center py-32">
           <h1 className="font-cormorant text-3xl font-bold text-white">Artikel Tidak Ditemukan</h1>
           <Link href="/journal" className="text-brand-yellow mt-4 hover:underline">
             {t.backToJournal}
