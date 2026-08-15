@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Outfit, Montserrat } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -54,6 +55,20 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
     >
       <body className="min-h-full flex flex-col bg-brand-dark text-brand-cream selection:bg-brand-yellow selection:text-brand-dark">
+        {/* Google Analytics 4 (GA4) Tracking */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-D7E5JLX587"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-D7E5JLX587');
+          `}
+        </Script>
+
         <LanguageProvider>
           <ProductProvider>
             <CartProvider>
